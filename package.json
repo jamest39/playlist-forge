@@ -1,0 +1,12 @@
+{
+  "name": "playlist-forge",
+  "version": "0.1.0",
+  "description": "Validating parser and pretty printer for M3U audio playlists",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  }
+}
