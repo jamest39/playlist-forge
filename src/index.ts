@@ -1,3 +1,3 @@
-export { parse, ParseError } from './playlist';
-export type { Playlist, PlaylistEntry } from './playlist';
-export { print } from './printer';
+export { parse, ParseError } from './playlist.js';
+export type { Playlist, PlaylistEntry } from './playlist.js';
+export { print } from './printer.js';

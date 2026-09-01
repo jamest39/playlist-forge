@@ -1,4 +1,4 @@
-import { Playlist } from './playlist';
+import { Playlist } from './playlist.js';
 
 // Renders a Playlist back to M3U text in a single canonical style: LF line
 // endings, integer durations without decimals, and no blank lines. Feeding
