@@ -203,6 +203,105 @@ test('ParseError carries its line number and a prefixed message', () => {
   );
 });
 
+test('EXT-X-STREAM-INF attaches stream info to the following variant URI', () => {
+  const source =
+    '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1280000,RESOLUTION=1920x1080,' +
+    'CODECS="avc1.4d401f,mp4a.40.2",FRAME-RATE=29.97\nhigh.m3u8\n';
+  const playlist = parse(source);
+  assertEqual(
+    playlist.entries,
+    [
+      {
+        uri: 'high.m3u8',
+        streamInfo: {
+          bandwidth: 1280000,
+          resolution: { width: 1920, height: 1080 },
+          codecs: 'avc1.4d401f,mp4a.40.2',
+          frameRate: 29.97,
+        },
+      },
+    ],
+    'entries'
+  );
+});
+
+test('EXT-X-STREAM-INF with only the required BANDWIDTH attribute is accepted', () => {
+  const playlist = parse('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=500000\nlow.m3u8\n');
+  assertEqual(playlist.entries, [{ uri: 'low.m3u8', streamInfo: { bandwidth: 500000 } }], 'entries');
+});
+
+test('EXT-X-STREAM-INF without BANDWIDTH is rejected', () => {
+  assertThrows(
+    () => parse('#EXTM3U\n#EXT-X-STREAM-INF:RESOLUTION=1920x1080\nhigh.m3u8\n'),
+    (error) => {
+      assertEqual(error.line, 2, 'error line');
+      assertEqual(
+        error.message,
+        'line 2: EXT-X-STREAM-INF is missing the required BANDWIDTH attribute',
+        'error message'
+      );
+    }
+  );
+});
+
+test('EXT-X-STREAM-INF with a non-numeric BANDWIDTH is rejected', () => {
+  assertThrows(
+    () => parse('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=fast\nhigh.m3u8\n'),
+    (error) => {
+      assertEqual(error.line, 2, 'error line');
+      assertEqual(
+        error.message,
+        'line 2: EXT-X-STREAM-INF BANDWIDTH "fast" is not a non-negative integer',
+        'error message'
+      );
+    }
+  );
+});
+
+test('EXT-X-STREAM-INF with a malformed RESOLUTION is rejected', () => {
+  assertThrows(
+    () => parse('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=widescreen\nhigh.m3u8\n'),
+    (error) => {
+      assertEqual(error.line, 2, 'error line');
+      assertEqual(
+        error.message,
+        'line 2: EXT-X-STREAM-INF RESOLUTION "widescreen" is not in WIDTHxHEIGHT form',
+        'error message'
+      );
+    }
+  );
+});
+
+test('EXT-X-STREAM-INF at end of file with no variant URI after it is rejected', () => {
+  assertThrows(
+    () => parse('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=500000\n'),
+    (error) => {
+      assertEqual(error.line, 2, 'error line');
+      assertEqual(error.message, 'line 2: EXT-X-STREAM-INF entry has no following URI', 'error message');
+    }
+  );
+});
+
+test('EXTINF followed by EXT-X-STREAM-INF with no URI in between is rejected', () => {
+  assertThrows(
+    () => parse('#EXTM3U\n#EXTINF:10,Track\n#EXT-X-STREAM-INF:BANDWIDTH=500000\nhigh.m3u8\n'),
+    (error) => {
+      assertEqual(error.line, 2, 'error line');
+      assertEqual(error.message, 'line 2: EXTINF entry has no following track URI', 'error message');
+    }
+  );
+});
+
+test('print() round-trips an EXT-X-STREAM-INF entry', () => {
+  const source =
+    '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1280000,AVERAGE-BANDWIDTH=1000000,' +
+    'RESOLUTION=1920x1080,CODECS="avc1.4d401f",FRAME-RATE=29.97\nhigh.m3u8\n';
+  const playlist = parse(source);
+  const printed = print(playlist);
+  assertEqual(printed, source, 'canonical output');
+  assertEqual(parse(printed), playlist, 'round-tripped playlist');
+});
+
 test('print() output parses back to an equal playlist', () => {
   const source =
     '#EXTM3U\n#EXTINF:245,Boards of Canada - Roygbiv\nmusic/boc/roygbiv.mp3\n' +

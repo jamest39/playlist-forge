@@ -53,12 +53,35 @@ try {
 - An `#EXTM3U` header anywhere other than line 1.
 - An `#EXTINF` line missing the comma that separates duration from title.
 - An `#EXTINF` duration that isn't a number.
-- An `#EXTINF` line with no track URI after it (including at end of file).
+- An `#EXTINF` or `#EXT-X-STREAM-INF` line with no URI after it (including
+  at end of file, or immediately followed by another such tag).
+- An `#EXT-X-STREAM-INF` line missing its required `BANDWIDTH` attribute, or
+  with a non-integer `BANDWIDTH`/`AVERAGE-BANDWIDTH`, a `RESOLUTION` not in
+  `WIDTHxHEIGHT` form, or a non-numeric `FRAME-RATE`.
 - A track line containing control characters.
 
 Plain (non-extended) playlists are accepted as-is - a bare list of URIs with
 no `#EXTM3U` header is valid input, it just carries no duration or title
 metadata.
+
+## HLS master playlists
+
+An `#EXT-X-STREAM-INF` tag ahead of a URI marks that URI as a variant stream
+rather than a plain track - the same slot `#EXTINF` fills for media
+playlists. Its attribute list is parsed into `entry.streamInfo`:
+
+```ts
+const playlist = parse(
+  '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1280000,RESOLUTION=1920x1080\nhigh.m3u8\n'
+);
+console.log(playlist.entries[0].streamInfo);
+// { bandwidth: 1280000, resolution: { width: 1920, height: 1080 } }
+```
+
+`BANDWIDTH` is the only required attribute; `AVERAGE-BANDWIDTH`,
+`RESOLUTION`, `CODECS`, and `FRAME-RATE` are read when present and ignored
+otherwise. Other HLS tags (`#EXT-X-VERSION`, `#EXT-X-TARGETDURATION`, and so
+on) are still passed through as unrecognized comments rather than validated.
 
 ## Building
 
